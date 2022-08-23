@@ -1,0 +1,10 @@
+{
+    "users": ["user-1", "user-2"],
+    "messages": [
+        {
+            "author": "user-1",
+            "timestamp": "t1",
+            "content": "Hello.."
+        }
+    ]
+}
