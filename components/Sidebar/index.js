@@ -1,31 +1,28 @@
 import styled from "styled-components";
 import SearchBar from "../SearchBar";
-import * as EmailValidator from 'email-validator';
-import { useUserContext } from "../../providers/UserProvider";
 import { useState } from "react";
 import Modal from "../Modal";
 import ChatList from "../ChatList";
 import Button from "../Button";
+import ContactList from "../ContactList";
+import { useChatContext } from "../../providers/ChatProvider";
 
 function SideBar() {
-    const {user} = useUserContext();
     const [show, setShow] = useState(false);
+    const { startChat } = useChatContext();
 
-    console.log('Logging from Sidebar', user);
+    //console.log('Logging from Sidebar', user);
     const createChat = () => {
         setShow(true);
-        /* const input = prompt('Please enter an email address for the user you want to chat with');
-
-        if(!input){
-            return null;
-        }
-        if(EmailValidator.validate(input)){
-
-        } */
     };
 
-    const onClose = () => {
+    const createGroup = () => {}
+
+    const onSelectContact = (user) => {
+        console.log(user);
+        startChat(user);
         setShow(false);
+
     }
   return (
     <SideBarContainer>
@@ -37,8 +34,7 @@ function SideBar() {
         {/* List of chats */}
         {
             show && <Modal onClose={() => setShow(false)} >
-                <h1>Start a chat</h1>
-                <p>jfhjkhlfh dhfklfdh hdskl udks sdilks jdlsjlfsh jhkdjhksd dhskjkj dkjshkjd jahj bjha jhjv hh jhjha jhjsd</p>
+                <ContactList onSelectContact={onSelectContact} />
             </Modal>
         }
     </SideBarContainer>

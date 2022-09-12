@@ -1,12 +1,58 @@
+import { Add, GroupAdd } from "@material-ui/icons";
+import { useEffect, useState, useCallback } from "react";
 import styled from "styled-components";
+import { useChatContext } from "../../providers/ChatProvider";
+import { useUserContext } from "../../providers/UserProvider";
+import Contact from "../Contact";
 
 const ChatList = ({onNewChat}) => {
+    const { user } = useUserContext();
+    const { chats, /* activeChatId,  */ startChat } = useChatContext();
+    const [ chatArr, setChatArr ] = useState([]);
+
+    useEffect(() => {
+        if(!chats){return;}
+        console.log(`New chats ->`, chats);
+        let arr = (Object.values(chats)).sort((c1, c2) => {
+            return c1.lastChatTimestamp > c2.lastChatTimestamp ? 1 : -1;
+        });
+        setChatArr(arr);
+    }, [chats])
+
+
     return (
         <ChatListContainer>
             <ChatListHeader>
                 <h3>Chats</h3>
-                <AddChatButton onClick={onNewChat}>+</AddChatButton>
+                <ButtonContainer>
+                    <AddChatButton onClick={onNewChat}>
+                        <Add />
+                    </AddChatButton>
+                    <AddChatButton>
+                        <GroupAdd/>
+                    </AddChatButton>
+                </ButtonContainer>
             </ChatListHeader>
+
+            <ChatListWrapper>
+                {
+                    chatArr.map(({ id, isGroup=false, roomName, roomAvatar, participants=[] }) => {
+                        let order = 0;
+                        let friend;
+                        if(!isGroup){
+                            friend = participants.find(obj => obj.id !== user.uid);
+                        }
+                                                
+                        /* if(activeChatId && id === activeChatId){
+                            order = -2;
+                        } */
+                        return <ChatWrapper key={id} order={order}>
+                            <Contact onSelect={() => {startChat(friend)}} {...friend}/>
+                        </ChatWrapper>
+                    })
+                }
+
+            </ChatListWrapper>
             
             
         </ChatListContainer>
@@ -27,7 +73,7 @@ const ChatListHeader = styled.div`
     padding: 0 1.5rem;
 `
 
-const AddChatButton = styled.button`
+let AddChatButton =  styled.button`
     background: transparent;
     border: none;
     border-radius: 24px;
@@ -41,6 +87,33 @@ const AddChatButton = styled.button`
 
     ::hover {
         background: rgba(0, 0, 0, 0.3);
+    }
+`
+
+const ButtonContainer = styled.div`
+    display: inline-flex;
+    gap: 1rem;
+`
+
+const ChatListWrapper = styled.div`
+    display: flex;
+    flex-direction: column;
+`
+
+const ChatWrapper = styled.div`
+    display: flex;
+    order: ${props => props.order || 0};
+    position: relative;
+
+    &:before {
+        content: "";
+        position: absolute;
+        height: 100%;
+        width: 4px;
+        left: 0;
+        top: 0;
+        background-color: #128c7e;
+        display: ${props => props.order === -2 ? 'inline-block' : 'none'}
     }
 `
 

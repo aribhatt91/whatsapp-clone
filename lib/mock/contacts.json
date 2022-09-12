@@ -1,0 +1,32 @@
+[
+    {
+        "email": "js@gmail.com",
+        "displayName": "Jon Snow",
+        "photoURL": ""
+    },
+    {
+        "email": "ns@gmail.com",
+        "displayName": "Ned Stark",
+        "photoURL": ""
+    },
+    {
+        "email": "as@gmail.com",
+        "displayName": "Arya Stark",
+        "photoURL": ""
+    },
+    {
+        "email": "tg@gmail.com",
+        "displayName": "Theon Greyjoy",
+        "photoURL": ""
+    },
+    {
+        "email": "tl@gmail.com",
+        "displayName": "Tyrion Lannister",
+        "photoURL": ""
+    },
+    {
+        "email": "dt@gmail.com",
+        "displayName": "Dany Targaryen",
+        "photoURL": ""
+    }
+]

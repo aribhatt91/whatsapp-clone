@@ -1,0 +1,44 @@
+[
+    {
+        "id": 1,
+        "senderId": "QVL79xDmR5YLOvdf66a3tofJtLA3",
+        "text": "Hello!",
+        "timestamp": 1111111,
+        "roomId": 123
+    },
+    {
+        "id": 2,
+        "senderId": "kM7cGUCfKdS1YcsmYMwbt9325eM2",
+        "text": "Hi!",
+        "timestamp": 1111112,
+        "roomId": 123
+    },
+    {
+        "id": 3,
+        "senderId": "kM7cGUCfKdS1YcsmYMwbt9325eM2",
+        "text": "How are you?",
+        "timestamp": 1111113,
+        "roomId": 123
+    },
+    {
+        "id": 4,
+        "senderId": "QVL79xDmR5YLOvdf66a3tofJtLA3",
+        "text": "Not too bad",
+        "timestamp": 1111114,
+        "roomId": 123
+    },
+    {
+        "id": 5,
+        "senderId": "QVL79xDmR5YLOvdf66a3tofJtLA3",
+        "text": "Long time no see",
+        "timestamp": 1111115,
+        "roomId": 123
+    },
+    {
+        "id": 6,
+        "senderId": "kM7cGUCfKdS1YcsmYMwbt9325eM2",
+        "text": "indeed",
+        "timestamp": 1111113,
+        "roomId": 123
+    }
+]

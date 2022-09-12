@@ -3,6 +3,7 @@ import styled from 'styled-components'
 import { Avatar, Button, IconButton } from "@material-ui/core";
 import { Chat, MoreVert } from "@material-ui/icons";
 import { useUserContext } from "../../providers/UserProvider";
+import ChatAvatar from '../ChatAvatar';
 
 
 function NavBar() {
@@ -10,7 +11,7 @@ function NavBar() {
   return (
     <NavContainer>
         <Header>
-            <UserAvatar user={user} />
+            <ChatAvatar photoURL={user.photoURL} />
             <UserName></UserName>
             <IconsContainer>
                 {/* <IconButton>
@@ -37,33 +38,23 @@ const NavContainer = styled.nav`
 
 const Header = styled.header`
     display: flex;
+    width: 100%;
+    max-width: 980px;
+    margin: auto;
     justify-content: space-between;
     align-items: center;
     position: sticky;
     top: 0;
     height: 80px;
-    border-bottom: 1px solid whitesmoke;
+    color: #fff;
 `;
 
-const UserAvatar = styled(Avatar)`
-    ${({user}) => user && user.photoURL && (
-        styled.div`
-            background-image: url(${user.photoURL});
-            background-repeat: none;
-            background-position: center;
-            background-size: cover;
-            > svg {
-                display: none;
-            }
-        `
-    )}
-    cursor: pointer;
-    :hover {
-        opacity: 0.8;
+const IconsContainer = styled.div`
+    color: #fff;
+    svg {
+        fill: #fff;
     }
 `;
-
-const IconsContainer = styled.div``;
 
 
 export default NavBar;

@@ -1,0 +1,17 @@
+{
+    "chatId": "user-1.id|user-2.id",
+    "users": ["user-1", "user-2"],
+    "lastMessageTimestamp": "t2",
+    "messages": [
+        {
+            "sender": "user-1",
+            "timestamp": "t1",
+            "content": "Hello.."
+        },
+        {
+            "sender": "user-2",
+            "timestamp": "t2",
+            "content": "Hi..how are you"
+        }
+    ]
+}

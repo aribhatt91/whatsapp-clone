@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { auth, signInWithPopup, signOut, provider } from "../firebase";
 import  {useAuthState} from 'react-firebase-hooks/auth';
-import { updateUser } from '../lib/firestore';
+import { updateUser } from '../lib/users';
 
 const UserContext = React.createContext();
 
