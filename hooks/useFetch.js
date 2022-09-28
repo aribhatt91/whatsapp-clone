@@ -1,20 +1,38 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 
 const useFetch = (url, options={}) => {
       const [data, setData] = useState(null);
       const [error, setError] = useState(null);
-      const [loading, setLoading] = useState(true);
+
+      const abortController = useMemo(() => new AbortController(), []);
+      const loading = data === null && error === null;
 
       useEffect(() => {
-        setLoading(true);
-        fetch(url)
-          .then((res) => typeof res === 'string' ? res.json() : res)
-          .then((data) => setData(data))
-          .catch((err) => setError(err))
-          .finally(() => setLoading(false));
-      }, [url]);
 
-      return {data, error, loading};
+        const fetchData = async () => {
+
+          try {
+            const res = await fetch(url, {...options, signal: abortController.signal});
+            const json = await res.json();
+            setData(json);
+
+          }catch(error) {
+            setError(error);
+          }
+
+        }
+
+        fetchData();
+
+        return () => {
+          if(typeof abortController.abort === 'function'){
+            abortController.abort()
+          }
+        };
+
+      }, []);
+
+      return { data, error, loading, abort: abortController.abort };
 };
 
 export default useFetch;

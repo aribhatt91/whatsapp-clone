@@ -1,11 +1,14 @@
 import { useState, useEffect, useContext, createContext } from 'react';
+import useFetch from '../hooks/useFetch';
 
 const NetworkStateContext = createContext();
 
-export const useNetworkState = useContext(NetworkStateContext);
+export const useNetworkState = () => useContext(NetworkStateContext);
 
 const NetworkStateProvider = ({children}) => {
     const [online, setOnline] = useState(window.navigator.onLine);
+    //const {data, error, loading, abort} = useFetch('/api/hello');
+    //console.log('NetworkStateProvider', data, error, loading, abort);
 
     useEffect(() => {
         const onOnlineStateChange = () => {

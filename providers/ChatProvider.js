@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState, createContext } from 'react';
+import { useContext, useEffect, useState, createContext, useRef } from 'react';
 import { useUserContext } from './UserProvider';
 import { addRoom, getRoomsForUser, getRoomById, updateRoom } from '../lib/rooms';
 import { getMessagesForRoom, addMessageForRoom, saveMessageOffline, uploadOfflineMessages, getOfflineMessages } from '../lib/messages';
@@ -7,11 +7,22 @@ import { useSocketContext } from './SocketProvider';
 import { v4 as uuidv4 } from 'uuid';
 import { useNetworkState } from './NetworkStateProvider';
 
+import Message, { MESSAGE_TYPE } from '../lib/models/Message';
+
 const ChatContext = createContext();
 
 const TEST_OFFLINE_MODE = false;
 
+let typingStateCallback = null;
+
 export const useChatContext = () => useContext(ChatContext);
+
+const reducer = (state, action) => {
+    switch(action.type) {
+        case 'ADD_NEW_CHAT':
+            return state
+    }
+}
 
 function ChatProvider({children}) {
 
@@ -23,23 +34,25 @@ function ChatProvider({children}) {
     const { socket } = useSocketContext();
     const online = useNetworkState();
 
-    console.log('Render ChatProvider', `chats:`, chats, `activeChatId: ${activeChatId}`)
+    const stateRef = useRef({
+        activeChatId,
+        activeChat,
+        chats
+    });
+
+    const renderCount = useRef(0);
+
+    useEffect(() => {
+        stateRef.current = {
+            activeChatId,
+            activeChat,
+            chats
+        }
+    })
 
     /* Create a unique 1 to 1 Room Id based on the particpant IDs */
     const getChatRoomId = (otherIds) => uniqueHash([user.uid, ...otherIds].sort().join('|'))
 
-    /* Given text, roomId(chatId) and sender, create a message object */
-    const getMessageObject = (roomId, senderId, text, recipients=[], timestamp=null) => {
-        const id = uuidv4();
-        return {
-            id,
-            roomId,
-            text,
-            senderId,
-            recipients: recipients.filter(rid => rid !== senderId),
-            timestamp: timestamp || Date.now()
-        }
-    }
     /* 
     
     SOCKET HELPER METHODS
@@ -60,7 +73,7 @@ function ChatProvider({children}) {
                 if(toGroup){
                     socket.emit('send-message-group', {recipient, message, sender: user.uid})
                 }else {
-                    socket.emit('send-message', {recipient, message, sender: user.uid})
+                    socket.emit('send-message', { message })
                 }
                 
             }
@@ -76,6 +89,7 @@ function ChatProvider({children}) {
             socket.emit('seen-message', {roomId, userId: user.uid});
         }
     }
+
     /* @event(ack-seen-message) */
     const recieveUserHasSeenStatus = ({roomId, userId}) => {
         if(TEST_OFFLINE_MODE){return};
@@ -109,31 +123,46 @@ function ChatProvider({children}) {
         }
     }
 
-    const sendIsTypingStatus = (roomId) => {
-        if(TEST_OFFLINE_MODE){return};
+    const sendIsTypingState = (state) => {
+        if(TEST_OFFLINE_MODE || !socket){return};
         
-        if(socket) {
-            socket.emit('is-typing', {roomId, userId: user.uid});
+        if(stateRef.current.activeChatId && user) {
+            socket.emit('typing-state', {state, roomId: stateRef.current.activeChatId, userId: user.uid, displayName: user.displayName});
         }
     }
 
-    const recieveIsTypingStatus = ({roomId, userId}) => {
+    const onRecieveIsTypingState = ({state, roomId, userId, displayName}) => {
         if(TEST_OFFLINE_MODE){return};
-        
 
+        if(typeof typingStateCallback === 'function' && roomId === stateRef.current.activeChatId){
+            typingStateCallback({state, roomId, userId, displayName});
+        }
     }
+
+    const pingIsUserOnline = (userId) => {
+        if(socket){
+            socket.emit('is-online', {userId});
+        }
+    }
+
+    const registerTypingStateCallback = (callback) => typingStateCallback = callback;
+
+    const unregisterTypingStateCallback = (callback) => typingStateCallback = null;
 
     /* 
     @param(messageObject)
     */
-    const onRecieveMessageOverSocket = async ({ message }) => {
-        console.log('onRecieveMessage', message );
-        if(TEST_OFFLINE_MODE){return};
+    const foo = () => {
+        console.log('foo', { chats: stateRef.current.chats, activeChat: stateRef.current.activeChat, activeChatId});
+    }
 
-        
+    const onRecieveMessageOverSocket = async ({message}) => {
+        foo();
+        console.log('onRecieveMessageOverSocket', message, stateRef.current.chats );
+        if(TEST_OFFLINE_MODE || !message){return};
 
-
-        let chatId;
+        let chatId, 
+        chat = null;
         chatId = `${message.roomId}`;
 
         if(!chatId){
@@ -141,11 +170,10 @@ function ChatProvider({children}) {
             return;
         }
 
-        
-
         /* If Chat is present */
-        if(chats[chatId]){
-            let chat = {...chats[chatId]};
+        if(stateRef.current.chats[chatId]){
+
+            chat = {...stateRef.current.chats[chatId]};
 
             /* 
             Update user's unreadMessageCount depending upon whether the chat is currently active 
@@ -166,11 +194,12 @@ function ChatProvider({children}) {
             /* 
             If chat is currently active, push the live messages to the active chat and update the state 
             */
+            console.log('Updating active chat', chatId, stateRef.current.activeChatId);
+            if(stateRef.current.activeChat && chatId === stateRef.current.activeChatId) {
+                
 
-            if(activeChat && chatId === activeChatId) {
-
-                chat.messages = activeChat.messages || [];
-                chat.messages.push(message);
+                chat.messages = stateRef.current.activeChat.messages || [];
+                chat.messages.unshift(message);
 
                 /* 
                 If not a group, assign the other partcipant's details as Group's avatar and name 
@@ -181,11 +210,12 @@ function ChatProvider({children}) {
                     chat.roomName = friend && friend.displayName || "";
                     chat.roomAvatar = friend && friend.photoURL || "";
                 }
+                console.log('Updating active chat', chat);
                 setActiveChat({
                     ...chat
                 });
 
-                sendUserHasSeenStatus(activeChatId);
+                sendUserHasSeenStatus(stateRef.current.activeChatId);
 
                 /* Update unread count for the user */
                 updateRoom(chatId, { participants: chat.participants });
@@ -193,12 +223,17 @@ function ChatProvider({children}) {
             }
 
         }else {
-            console.log('Existing chat not found for Id', chatId, chats);
+            console.log('Existing chat not found for Id', {chatId, chats, activeChat, activeChatId});
             /* If the chat is not present and the user recieves the first message */
-            //chat = await getRoomById(chatId);
+            chat = await getRoomById(chatId);
             /* chat.unreadMessageCount = chat.unreadMessageCount || 0;
             chat.unreadMessageCount += 1; */
         }
+        if(!chat){
+            console.log('For some reason chat wasnt updated');
+            return;
+        }
+        console.log('Updating chat');
         setChats((prevChats) => {
             console.log('Setting new chat', chat)
             return {
@@ -291,7 +326,7 @@ function ChatProvider({children}) {
     /* 
     @param (message)
     */
-    const sendMessage = (message) => {
+    const sendMessage = (message, messageType=MESSAGE_TYPE.TEXT) => {
 
         if(!activeChat){
             throw new Error('No active chat found to send message');
@@ -318,8 +353,8 @@ function ChatProvider({children}) {
                 addRoom(chat);
             }
             chat.lastChatTimestamp = Date.now();
-            const messageObj = getMessageObject(activeChatId, user.uid, message, activeChat.participantIds);
-
+            const messageObj = Message(activeChatId, user.uid, message, activeChat.participantIds, messageType);
+            console.log('sendMessage::', messageObj);
             /* Web socket */
             sendMessageOverSocket(friend.id, messageObj);
 
@@ -340,8 +375,6 @@ function ChatProvider({children}) {
 
             /* Update active chat with the messages */
             setActiveChat(prevChat => {
-
-                
 
                 return {
                     ...chat,
@@ -438,7 +471,7 @@ function ChatProvider({children}) {
         console.log('socket modified', socket);
         if(socket){
             socket.on('recieve-message', onRecieveMessageOverSocket);
-            //socket.on('recieve-message', (message) => {console.log('new receiveMessage', message, chats);})
+            socket.on('ack-typing-state', onRecieveIsTypingState)
             joinRoomOverSocket();
         }
         //return () => socket && socket.close();
@@ -487,14 +520,6 @@ function ChatProvider({children}) {
         }
     }, [online])
 
-    /* useEffect(()=>{
-        console.log('chats modified', chats);
-    }, [chats]);
-
-    useEffect(()=>{
-        console.log('activeChat modified', activeChat);
-    }, [activeChat]); */
-
     const value = {
         loadingMessages,
         activeChatId,
@@ -502,6 +527,10 @@ function ChatProvider({children}) {
         chats,
         startChat,
         sendMessage,
+        onRecieveMessageOverSocket,
+        sendIsTypingState,
+        registerTypingStateCallback,
+        unregisterTypingStateCallback,
         getMessagesForActiveChat,
         createNewGroup,
         addUserToGroup,

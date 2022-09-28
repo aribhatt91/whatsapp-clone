@@ -18,11 +18,11 @@ function ChatBox() {
     }
 
     return (
-        <ChatBoxContainer>
+        <ChatBoxContainer active={!!activeChat}>
 
             <ChatBoxWrapper>
                 {
-                    activeChat && <ActiveChat />
+                    activeChat && <ActiveChat input={messageBox.current} />
                 }
             </ChatBoxWrapper>
 
@@ -47,6 +47,12 @@ const ChatBoxContainer = styled.div`
     padding: 1rem;
     max-height: 100%;
     overflow: hidden;
+
+    @media (max-width: 768px) {
+        transition: 0.25s all ease-in-out;
+        min-width: 100%;
+        transform: translateX(${props => props.active ? '-100%': '0'});
+    }
 `;
 
 const ChatBoxWrapper = styled.div`

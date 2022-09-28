@@ -12,6 +12,8 @@ function Contact({onSelect=() => {}, displayName="", photoURL, email, ...rest}) 
             <ContactName>
                 {displayName}
             </ContactName>
+            <ContactSubText>
+            </ContactSubText>
         </ContactDetails>
     </ContactContainer>
   )
@@ -46,6 +48,12 @@ const ContactContainer = styled.div`
     &:hover {
         background-color: rgba(0, 0, 0, 0.05);
     }
+`;
+
+const ContactSubText = styled.div`
+    font-size: 0.875rem;
+    line-height: 1.2;
+    color: gray;
 `
 
 export default Contact

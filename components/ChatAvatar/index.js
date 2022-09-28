@@ -3,14 +3,14 @@ import { Avatar } from "@material-ui/core";
 
 export default function ChatAvatar({photoURL, size=56}) {
   return (
-    <ChatAvatarStyled datasrc={photoURL}></ChatAvatarStyled>
+    <ChatAvatarStyled datasrc={photoURL} size={size}></ChatAvatarStyled>
   )
 }
 
 const ChatAvatarStyled = styled(Avatar).attrs(props => {
             
     })`
-    background-image: url(${props => props.datasrc || ""});
+    background-image: url(${props => (props.datasrc || "")});
     background-position: center;
     background-size: cover;
     cursor: pointer;

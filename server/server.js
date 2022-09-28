@@ -55,7 +55,7 @@ if(connections.length){
 server.start(({port}) => {
     console.log(`Server started on http://localhost:${port}/`);
 }) */
-const users = new Set();
+const users = new Map();
 const rooms = new Map();
 
 /* io.use((socket, next) => {
@@ -77,7 +77,7 @@ io.on('connection', socket => {
   const id = socket.handshake.query.id;
   
   if(id && !users.has(id)){
-    users.add(id);
+    users.set(id, socket.id);
     console.log(`Adding user ${id}`)
     socket.join(id);
   }
@@ -124,12 +124,10 @@ io.on('connection', socket => {
       
 
       if( rId !== message.senderId ){
-        socket.emit('recieve-message', {
-          content: message,
-          to: rId
-        })
+        //socket.emit('recieve-message', {message});
         //socket.join(rId)
-        //socket.to(rId).emit('recieve-message', { message, isGroup: recipients.length === 1});
+        console.log('sending to ', rId);
+        io.to(users.get(rId)).emit('recieve-message', { message, isGroup: recipients.length === 1});
       }
       //socket.leave(rId);
     });
@@ -143,8 +141,8 @@ io.on('connection', socket => {
     socket.to(roomId).emit("ack-seen-message", { roomId, userId });
   });
 
-  socket.on("is-typing", function ({roomId, userId, displayName}) {
-    socket.to(roomId).emit("is-typing", {roomId, userId, displayName});
+  socket.on("typing-state", function ({state, roomId, userId, displayName}) {
+    socket.to(roomId).emit("ack-typing-state", {state, roomId, userId, displayName});
   });
 
 })

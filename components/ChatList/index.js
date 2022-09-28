@@ -5,7 +5,7 @@ import { useChatContext } from "../../providers/ChatProvider";
 import { useUserContext } from "../../providers/UserProvider";
 import Contact from "../Contact";
 
-const ChatList = ({onNewChat}) => {
+const ChatList = ({onNewChat, filter}) => {
     const { user } = useUserContext();
     const { chats, /* activeChatId,  */ startChat } = useChatContext();
     const [ chatArr, setChatArr ] = useState([]);
@@ -18,6 +18,36 @@ const ChatList = ({onNewChat}) => {
         });
         setChatArr(arr);
     }, [chats])
+
+    useEffect(() => {
+        if(!chats){return;}
+
+        
+        let arr = (Object.values(chats)).sort((c1, c2) => {
+            return c1.lastChatTimestamp > c2.lastChatTimestamp ? 1 : -1;
+        });
+
+        if(!filter){
+            setChatArr(arr);
+            return;
+        }else {
+            setChatArr(arr.filter((a) => {
+                const { participants=[], isGroup, roomName } = a;
+                let chatName = "";
+                if(!isGroup){
+                    let friend = participants.find(obj => obj.id !== user.uid);
+                    if(friend){
+                        chatName = friend.displayName;
+                    }
+                }else {
+                    chatName = roomName;
+                }
+                chatName = chatName || "";
+                console.log(chatName, filter);
+                return chatName.toLowerCase().indexOf(filter.toLowerCase().trim()) > -1;
+            }))
+        }        
+    }, [filter])
 
 
     return (

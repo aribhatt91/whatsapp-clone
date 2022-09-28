@@ -13,6 +13,7 @@ const ChatBubble = ({text, senderId, seen, delivered, timestamp}) => {
             <p>
                 {text}
             </p>
+            <ChatMetaData></ChatMetaData>
         </ChatBubbleContainer>
     );
 }
@@ -38,4 +39,8 @@ const ChatBubbleContainer = styled.div`
         font-size: 0.875rem;
         padding: 0.5rem 1rem;
     }
-`
+`;
+
+const ChatMetaData = styled.div`
+    display: flex;
+`;
