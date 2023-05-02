@@ -13,7 +13,7 @@ export default function UserProvider({children}) {
   const [user, loading] = useAuthState(auth);
 
   const signIn = () => {
-    signInWithPopup(auth, provider).catch(error => console.error(error));
+    signInWithPopup(auth, provider).catch(console.error);
   }
 
   useEffect(() => {

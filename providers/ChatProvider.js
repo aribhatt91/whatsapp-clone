@@ -12,6 +12,7 @@ import Message, { MESSAGE_TYPE } from '../lib/models/Message';
 const ChatContext = createContext();
 
 const TEST_OFFLINE_MODE = false;
+const MESSAGES_PER_PAGE = 50;
 
 let typingStateCallback = null;
 
@@ -43,6 +44,7 @@ function ChatProvider({children}) {
     const renderCount = useRef(0);
 
     useEffect(() => {
+        console.log('stateRef', stateRef);
         stateRef.current = {
             activeChatId,
             activeChat,
@@ -123,9 +125,11 @@ function ChatProvider({children}) {
         }
     }
 
+    /* TYPING STATE */
+
     const sendIsTypingState = (state) => {
         if(TEST_OFFLINE_MODE || !socket){return};
-        
+
         if(stateRef.current.activeChatId && user) {
             socket.emit('typing-state', {state, roomId: stateRef.current.activeChatId, userId: user.uid, displayName: user.displayName});
         }
@@ -139,16 +143,17 @@ function ChatProvider({children}) {
         }
     }
 
+    const registerTypingStateCallback = (callback) => typingStateCallback = callback;
+
+    const unregisterTypingStateCallback = (callback) => typingStateCallback = null;
+    
+    /* ---- */
+
     const pingIsUserOnline = (userId) => {
         if(socket){
             socket.emit('is-online', {userId});
         }
     }
-
-    const registerTypingStateCallback = (callback) => typingStateCallback = callback;
-
-    const unregisterTypingStateCallback = (callback) => typingStateCallback = null;
-
     /* 
     @param(messageObject)
     */
@@ -414,17 +419,6 @@ function ChatProvider({children}) {
         setActiveChatId(null);
     }
 
-    const getMessagesForActiveChat = async (limit, lastIndex) => {
-        try{
-            setLoadingMessages(true);
-
-        }catch(error){
-
-        }finally{
-            setLoadingMessages(false);
-        }
-    }
-
     const createNewGroup = async (groupName, participants=[]) => {
         if(!groupName || typeof groupName !== 'string') {
             throw new Error('Missing argument: groupName');
@@ -446,6 +440,39 @@ function ChatProvider({children}) {
     const removeUserFromGroup = async (groupId, user) => {}
 
     const leaveGroup = async (groupId) => {}
+
+    /* 
+    
+    Fetch more messages 
+    @param: (first:boolean) 
+    In case of first call, lastIndex is ignored, for subsequent calls, new call is sent only if lastIndex is not null 
+    
+    */
+    const loadMessages = async (first=false, messageCount) => {
+        if(stateRef.current.activeChatId && (first || stateRef.current.activeChat.lastIndex)) {
+            try {
+                setLoadingMessages(true);
+
+                const { data, lastIndex } = await getMessagesForRoom(stateRef.current.activeChatId, (messageCount || MESSAGES_PER_PAGE), stateRef.current.activeChat ? stateRef.current.activeChat.lastIndex : null);
+
+                console.log('Response from getMessagesForRoom', data);
+
+                setActiveChat(prev => {
+                    return {
+                        ...prev, 
+                        messages: (prev.messages || []).concat(data), 
+                        lastIndex: data.length < (messageCount || MESSAGES_PER_PAGE) ? null : lastIndex
+                    }
+                });
+
+            }catch(error) {
+                console.error('loadMessages::error:', error);
+            }finally {
+                setLoadingMessages(false);
+            }
+            
+        }
+    }
 
 
     useEffect(async () => {
@@ -481,15 +508,12 @@ function ChatProvider({children}) {
         console.log('activeChatId modified', activeChatId);
         if(activeChatId){
             try{
-                setLoadingMessages(true);
+                //setLoadingMessages(true);
                 joinRoomOverSocket();
                 /* Fetch all messages for an active chat */
                 /* Ideally this should be localised for fast fetch */
 
-                /* Problem - what if the user quickly switches between chats and we have a race condition. Say the response for the 1st call overrides the response for the 2nd call. We need to cancel the previous request before sending a new one. */
-                const {data} = await getMessagesForRoom(activeChatId);
-                console.log('Response from getMessagesForRoom', data);
-                setActiveChat(prev => {return {...prev, messages: data}});
+                loadMessages(true, 20);
 
                 const chat = chats[activeChatId];
 
@@ -508,7 +532,7 @@ function ChatProvider({children}) {
             }catch(error){
                 console.error(error);
             }finally{
-                setLoadingMessages(false);
+                //setLoadingMessages(false);
             }
             
         }
@@ -531,7 +555,7 @@ function ChatProvider({children}) {
         sendIsTypingState,
         registerTypingStateCallback,
         unregisterTypingStateCallback,
-        getMessagesForActiveChat,
+        loadMessages,
         createNewGroup,
         addUserToGroup,
         removeUserFromGroup,

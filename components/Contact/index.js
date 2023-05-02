@@ -52,7 +52,8 @@ const ContactContainer = styled.div`
 
 const ContactSubText = styled.div`
     font-size: 0.875rem;
-    line-height: 1.2;
+    line-height: 1rem;
+    max-height: 1rem;
     color: gray;
 `
 

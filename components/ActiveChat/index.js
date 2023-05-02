@@ -1,5 +1,5 @@
 import { ArrowBack, Close } from '@material-ui/icons';
-import React, {useState, useRef, useEffect, useCallback} from 'react'
+import React, {useState, useRef, useEffect, useCallback, memo} from 'react'
 import styled from 'styled-components';
 import { useChatContext } from '../../providers/ChatProvider';
 import { useUserContext } from '../../providers/UserProvider';
@@ -21,8 +21,10 @@ function ActiveChat({input}) {
     const root = useRef(null),
     marker = useRef(null);
     const { user } = useUserContext();
-    const { activeChatId, activeChat, removeActiveChat, registerTypingStateCallback, unregisterTypingStateCallback, sendIsTypingState } = useChatContext();
-
+    const { activeChatId, activeChat, removeActiveChat, registerTypingStateCallback, unregisterTypingStateCallback, sendIsTypingState, loadMessages } = useChatContext();
+    
+    const lastIndexCache = useRef(null),
+    activeChatRef = useRef(activeChat);
     const [ typingState, setTypingState ] = useState(null);
     const { participants=[], messages=[] } = activeChat;
 
@@ -36,8 +38,24 @@ function ActiveChat({input}) {
     }
 
     const callback = debounce(() => {
-      console.log('fetch more....');
-    }, 500);
+
+      if(activeChatRef.current && (!activeChatRef.current.messages || activeChatRef.current.messages.length === 0)) {
+        console.log('No messages yet');
+        return;
+      }
+      if(activeChatRef.current && activeChatRef.current.messages.length > 0 && !activeChatRef.current.lastIndex){
+          console.log('All messages retrieved');
+          return;
+      }
+      if(activeChatRef.current && lastIndexCache.current && activeChatRef.current.lastIndex.id === lastIndexCache.current) {
+          console.log('API not called');
+          return;
+      }
+      lastIndexCache.current = activeChatRef.current.lastIndex ? activeChatRef.current.lastIndex.id : null;
+      console.log('API called for lastIndex', activeChatRef.current.lastIndex);
+      loadMessages(false, 20);
+
+    }, 750);
 
     const typingStateCallback = (response) => {
       console.log('typingStateCallback', response);
@@ -56,25 +74,30 @@ function ActiveChat({input}) {
 
     useEffect(() => {
       console.log('Updating active chat', messages);
+      activeChatRef.current = activeChat;
     }, [activeChat])
 
     useEffect(() => {
       /* Initiate intersection observer */
       const OPTIONS = {
         root: root.current,
-        rootMargin: '10px 0px',
+        rootMargin: '0px 0px',
         threshold: 0.1
       }
       const observer = new IntersectionObserver(callback, OPTIONS);
       observer.observe(marker.current);
 
       return () => {
-        if(marker.current){
+        if(marker.current && observer){
           observer.unobserve(marker.current);
         }
         
       };
     }, [activeChatId]);
+
+    /* useEffect(() => {
+      
+    }, [lastIndex]) */
 
     useEffect(() => {
 
@@ -112,7 +135,8 @@ function ActiveChat({input}) {
         </ActiveChatHeader>}
         <ActiveChatWrapper ref={root}>
           {
-            typingState && typingState.state === TYPING_STATE.TYPING && 
+            /* "is typing..." text */
+            typingState && typingState.state === TYPING_STATE.TYPING && !activeChat.isGroup && 
             <ChatBubble key={activeChatId} text={`${typingState.displayName.split(' ')[0]} is typing...`} />
           }
           {
@@ -181,8 +205,8 @@ const ActiveChatWrapper = styled.div`
   overflow: auto;
 `;
 
-const Marker = styled.span`
-  height: 8px;
+const Marker = styled.div`
+  min-height: 50px;
   width: 100%;
   background: transparent;
 `
