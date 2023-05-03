@@ -7,13 +7,16 @@ import Loading from '../components/Loading';
 import UserProvider from '../providers/UserProvider';
 import { updateLastSeen } from '../lib/lastseen';
 
+let interval;
+
 function MyApp({ Component, pageProps }) {
   const [user, loading] = useAuthState(auth);
 
   useEffect(() => {
     if(!user) {return}
     /* Update the user's last seen status every 30s */
-    const interval = setInterval(() => {
+    clearInterval(interval);
+    interval = setInterval(() => {
       console.log('updating status');
       updateLastSeen(user.uid)
     }, 30000); 
