@@ -6,6 +6,7 @@ import { useUserContext } from '../../providers/UserProvider';
 import ChatAvatar from '../ChatAvatar';
 import ChatBubble from '../ChatBubble';
 import { debounce } from 'lodash';
+import { getLastSeen } from '../../lib/lastseen';
 
 const TYPING_STATE = {
   IDLE: 0,
@@ -27,8 +28,10 @@ function ActiveChat({input}) {
     activeChatRef = useRef(activeChat);
     const [ typingState, setTypingState ] = useState(null);
     const { participants=[], messages=[] } = activeChat;
+    const [ isOnline, setIsOnline ] = useState(false);
+    const lastSeenTimeRef = useRef(null);
 
-    console.log('Rendering ActiveChat');
+    console.log('Rendering ActiveChat', activeChatId, activeChat, user);
 
     let friend = null, unreadMessageCount = 0;
 
@@ -72,6 +75,21 @@ function ActiveChat({input}) {
       sendIsTypingState(TYPING_STATE.IDLE);
     }, 1000);
 
+    const getLastSeenText = (timeGap) => {
+      if(timeGap < 60) {
+        return `less than a minute`
+      }else if(timeGap > 60 && timeGap < 3600) {
+        const diff = Math.ceil(timeGap/60)
+        return `${diff} minute${diff > 1 ? 's' : ''}`
+      }else if(timeGap > 3600 && timeGap < 24*3600) {
+        const diff = Math.ceil(timeGap/3600)
+        return `${diff} hour${diff > 1 ? 's' : ''}`
+      }else {
+        const diff = Math.ceil(timeGap/(24*3600))
+        return `${diff} day${diff > 1 ? 's' : ''}`
+      }
+    }
+
     useEffect(() => {
       console.log('Updating active chat', messages);
       activeChatRef.current = activeChat;
@@ -87,10 +105,35 @@ function ActiveChat({input}) {
       const observer = new IntersectionObserver(callback, OPTIONS);
       observer.observe(marker.current);
 
+      lastSeenTimeRef.current = null;
+
+      
+      const interval = setInterval(async () => {
+        try {
+          if(!activeChat.isGroup && activeChat.participantIds.length === 2){
+            const partcipantId = activeChat.participantIds.filter((p) => p !== user.uid)[0];
+            const lastSeen = await getLastSeen(partcipantId);
+            const diff = (Date.now() - Number(lastSeen.timestamp))/1000;
+            lastSeenTimeRef.current = getLastSeenText(diff);
+            setIsOnline(diff < 60);            
+          }else {
+            clearInterval(interval);
+          }
+        }catch(error) {
+          console.error('Error in updating last seen in active chat', error);
+          lastSeenTimeRef.current = null;
+        }
+        
+      }, 30000);
+
       return () => {
         if(marker.current && observer){
           observer.unobserve(marker.current);
         }
+        if(interval){
+          clearInterval(interval)
+        }
+        
         
       };
     }, [activeChatId]);
@@ -128,6 +171,16 @@ function ActiveChat({input}) {
               {
                 activeChat.roomName
               }
+              {
+                !activeChat.isGroup && lastSeenTimeRef.current && <LastSeenText><>
+                {
+                  isOnline && "Online"
+                }
+                {
+                  !isOnline && `Last seen ${lastSeenTimeRef.current} ago`
+                }
+                </></LastSeenText>
+              }
             </DisplayName>
             <CloseButton onClick={removeActiveChat}>
               <Close />
@@ -137,12 +190,16 @@ function ActiveChat({input}) {
           {
             /* "is typing..." text */
             typingState && typingState.state === TYPING_STATE.TYPING && !activeChat.isGroup && 
-            <ChatBubble key={activeChatId} text={`${typingState.displayName.split(' ')[0]} is typing...`} />
+            <ChatBubble key={activeChatId} >
+              {
+                `${typingState.displayName.split(' ')[0]} is typing...`
+              }
+            </ChatBubble>
           }
           {
             messages.map((m, index) => {
               
-              return <ChatBubble {...m} key={m.id} unread={unreadMessageCount-- > 0} />
+              return <ChatBubble {...m} key={m.id} unread={unreadMessageCount-- > 0} >{m.text}</ChatBubble>
             })
           }
           <Marker ref={marker}></Marker>
@@ -175,6 +232,14 @@ const ActiveChatHeader = styled.header`
 const DisplayName = styled.h5`
   flex-grow: 1;
   margin: 0 1rem;
+`
+
+const LastSeenText = styled.span`
+  display: block;
+  width: 100%
+  font-size: 10px;
+  font-weight: 400;
+  color: #888;
 `
 
 const CloseButton = styled.span`

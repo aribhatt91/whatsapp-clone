@@ -6,12 +6,12 @@ message: {
     text
 }
 */
-const ChatBubble = ({text, senderId, seen, delivered, timestamp}) => {
+const ChatBubble = ({text, senderId, seen, delivered, timestamp, children}) => {
     const {user} = useUserContext();
     return (
         <ChatBubbleContainer self={senderId === user.uid}>
             <p>
-                {text}
+                {children}
             </p>
             <ChatMetaData></ChatMetaData>
         </ChatBubbleContainer>

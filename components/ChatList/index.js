@@ -11,7 +11,7 @@ const ChatList = ({onNewChat, filter}) => {
     const [ chatArr, setChatArr ] = useState([]);
 
     useEffect(() => {
-        if(!chats){return;}
+        if(!chats || !Object.keys(chats).length){return;}
         console.log(`New chats ->`, chats);
         let arr = (Object.values(chats)).sort((c1, c2) => {
             return c1.lastChatTimestamp > c2.lastChatTimestamp ? 1 : -1;
@@ -24,7 +24,7 @@ const ChatList = ({onNewChat, filter}) => {
 
         
         let arr = (Object.values(chats)).sort((c1, c2) => {
-            return c1.lastChatTimestamp > c2.lastChatTimestamp ? 1 : -1;
+            return Number(c2.lastChatTimestamp) - Number(c1.lastChatTimestamp);
         });
 
         if(!filter){

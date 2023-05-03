@@ -142,6 +142,7 @@ io.on('connection', socket => {
   });
 
   socket.on("typing-state", function ({state, roomId, userId, displayName}) {
+    console.log('Typing state', state, userId, displayName);
     socket.to(roomId).emit("ack-typing-state", {state, roomId, userId, displayName});
   });
 
